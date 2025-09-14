@@ -198,9 +198,9 @@ void setup()
     lv_obj_set_size(light, 40, 40);                          /*Set its size*/
     lv_obj_add_event_cb(light, light_event, LV_EVENT_ALL, NULL);           /*Assign a callback to the button*/
 
-    button = lv_label_create(light);          /*Add a label to the button*/
-    lv_label_set_text(button, "灯");                     /*Set the labels text*/
-    lv_obj_center(button);
+    lv_obj_t * lightbutton = lv_label_create(light);          /*Add a label to the button*/
+    lv_label_set_text(lightbutton, "灯");                     /*Set the labels text*/
+    lv_obj_center(lightbutton);
 
     /**温度*///////////////////
     temp = lv_label_create(lv_screen_active()); // 创建标签
