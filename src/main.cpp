@@ -74,7 +74,7 @@ bool servo = false;
 static void button_event(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
-    if(code == LV_EVENT_CLICKED) {
+    if(code == LV_EVENT_LONG_PRESSED) {
        servo = !servo;
     }
 }
@@ -103,6 +103,9 @@ static void right_event(lv_event_t * e)
 
 lv_obj_t * label;
 lv_obj_t * button;
+
+lv_obj_t * temp;
+lv_obj_t * humidify;
 
 void setup()
 {
@@ -137,11 +140,11 @@ void setup()
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);   /* Touch pad is a pointer-like device. */
     lv_indev_set_read_cb(indev, input_read);    /* Set driver function. */
 
+    /**电压*///////////////////
     label = lv_label_create(lv_screen_active()); // 创建标签
     lv_label_set_text(label, "voltage");  // 设置初始文本
 
     lv_obj_align(label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
-
 
     /**左边滑条*///////////////////
     lv_obj_t * left = lv_roller_create(lv_screen_active());
@@ -172,6 +175,18 @@ void setup()
     button = lv_label_create(btn);          /*Add a label to the button*/
     lv_label_set_text(button, "fish");                     /*Set the labels text*/
     lv_obj_center(button);
+
+    /**温度*///////////////////
+    temp = lv_label_create(lv_screen_active()); // 创建标签
+    lv_label_set_text(temp, "temp");  // 设置初始文本
+
+    lv_obj_align(temp, LV_ALIGN_CENTER, -5, 30);
+
+    /**湿度*///////////////////
+    humidify = lv_label_create(lv_screen_active()); // 创建标签
+    lv_label_set_text(humidify, "humidify");  // 设置初始文本
+
+    lv_obj_align(humidify, LV_ALIGN_CENTER, 5, 10);
 }
 
 void loop()
@@ -197,10 +212,12 @@ void loop()
             lv_label_set_text(button, "低性能模式");
         }
 
-        float temp = 0;
-        float humidity = 0;
-        sensor.measureLowestPrecision(temp, humidity);
+        float temperture = 0;
+        float humidi = 0;
+        sensor.measureLowestPrecision(temperture, humidi);
 
+        lv_label_set_text(humidify, std::to_string(humidi).c_str());
+        lv_label_set_text(temp, std::to_string(temperture).c_str());
         //这两个就是sht45的温度和湿度
     }
 }
