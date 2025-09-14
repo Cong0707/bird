@@ -70,12 +70,26 @@ void input_read(lv_indev_t * indev, lv_indev_data_t * data)
 }
 
 bool servo = false;
+bool light = false;
 
 static void button_event(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
     if(code == LV_EVENT_LONG_PRESSED) {
        servo = !servo;
+    }
+}
+
+static void light_event(lv_event_t * e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    if(code == LV_EVENT_CLICKED) {
+        light = !light;
+        if(light) {
+            digitalWrite(21, HIGH);
+        } else {
+            digitalWrite(21, LOW);
+        }
     }
 }
 
@@ -113,6 +127,8 @@ void setup()
 
     pinMode(4, INPUT);
     pinMode(10, INPUT);
+
+    pinMode(21, OUTPUT);   // 灯
 
     tft.init();
     tft.setRotation(3);
@@ -174,6 +190,16 @@ void setup()
 
     button = lv_label_create(btn);          /*Add a label to the button*/
     lv_label_set_text(button, "fish");                     /*Set the labels text*/
+    lv_obj_center(button);
+
+    /**灯按钮*///////////////////
+    lv_obj_t * light = lv_button_create(lv_screen_active());     /*Add a button the current screen*/
+    lv_obj_align(light, LV_ALIGN_CENTER, -10, 20);     // 居中显示
+    lv_obj_set_size(light, 40, 40);                          /*Set its size*/
+    lv_obj_add_event_cb(light, light_event, LV_EVENT_ALL, NULL);           /*Assign a callback to the button*/
+
+    button = lv_label_create(light);          /*Add a label to the button*/
+    lv_label_set_text(button, "灯");                     /*Set the labels text*/
     lv_obj_center(button);
 
     /**温度*///////////////////
