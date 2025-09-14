@@ -141,10 +141,10 @@ void setup()
     lv_indev_set_read_cb(indev, input_read);    /* Set driver function. */
 
     /**电压*///////////////////
-    label = lv_label_create(lv_screen_active()); // 创建标签
-    lv_label_set_text(label, "voltage");  // 设置初始文本
-
-    lv_obj_align(label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    // label = lv_label_create(lv_screen_active()); // 创建标签
+    // lv_label_set_text(label, "voltage");  // 设置初始文本
+    //
+    // lv_obj_align(label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
 
     /**左边滑条*///////////////////
     lv_obj_t * left = lv_roller_create(lv_screen_active());
