@@ -206,13 +206,13 @@ void setup()
     temp = lv_label_create(lv_screen_active()); // 创建标签
     lv_label_set_text(temp, "temp");  // 设置初始文本
 
-    lv_obj_align(temp, LV_ALIGN_CENTER, -5, 30);
+    lv_obj_align(temp, LV_ALIGN_CENTER, -10, -70);
 
     /**湿度*///////////////////
     humidify = lv_label_create(lv_screen_active()); // 创建标签
     lv_label_set_text(humidify, "humidify");  // 设置初始文本
 
-    lv_obj_align(humidify, LV_ALIGN_CENTER, 5, 10);
+    lv_obj_align(humidify, LV_ALIGN_CENTER, 10, -50);
 }
 
 void loop()
@@ -240,10 +240,10 @@ void loop()
 
         float temperture = 0;
         float humidi = 0;
-        sensor.measureLowestPrecision(temperture, humidi);
+        //sensor.measureLowestPrecision(temperture, humidi);
 
-        lv_label_set_text(humidify, std::to_string(humidi).c_str());
-        lv_label_set_text(temp, std::to_string(temperture).c_str());
+        //lv_label_set_text(humidify, ("湿度" + std::to_string(humidi)).c_str());
+        //lv_label_set_text(temp, ("温度" + std::to_string(temperture)).c_str());
         //这两个就是sht45的温度和湿度
     }
 }
