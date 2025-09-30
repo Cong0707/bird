@@ -76,7 +76,7 @@ static void button_event(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
     if(code == LV_EVENT_LONG_PRESSED) {
-       servo = !servo;
+    servo = !servo;
     }
 }
 
@@ -156,17 +156,17 @@ void setup()
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);   /* Touch pad is a pointer-like device. */
     lv_indev_set_read_cb(indev, input_read);    /* Set driver function. */
 
-    /**电压*///////////////////
-    // label = lv_label_create(lv_screen_active()); // 创建标签
-    // lv_label_set_text(label, "voltage");  // 设置初始文本
-    //
-    // lv_obj_align(label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    label = lv_label_create(lv_screen_active()); // 创建标签
+    lv_label_set_text(label, "voltage");  // 设置初始文本
+
+    lv_obj_align(label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+
 
     /**左边滑条*///////////////////
     lv_obj_t * left = lv_roller_create(lv_screen_active());
     lv_roller_set_options(left,
-                          "1\n2\n3\n4\n5\n6\n7\n8\n9\n10",
-                          LV_ROLLER_MODE_INFINITE);
+        "1\n2\n3\n4\n5\n6\n7\n8\n9\n10",
+        LV_ROLLER_MODE_INFINITE);
 
     lv_roller_set_visible_row_count(left, 4);
     lv_obj_align(left, LV_ALIGN_LEFT_MID, 10, 0);
@@ -175,8 +175,8 @@ void setup()
     /**右边滑条*///////////////////
     lv_obj_t * right = lv_roller_create(lv_screen_active());
     lv_roller_set_options(right,
-                          "1\n2\n3\n4\n5\n6\n7\n8\n9\n10",
-                          LV_ROLLER_MODE_INFINITE);
+        "1\n2\n3\n4\n5\n6\n7\n8\n9\n10",
+        LV_ROLLER_MODE_INFINITE);
 
     lv_roller_set_visible_row_count(right, 4);
     lv_obj_align(right, LV_ALIGN_RIGHT_MID, -10, 0);
@@ -199,7 +199,7 @@ void setup()
     lv_obj_add_event_cb(light, light_event, LV_EVENT_ALL, NULL);           /*Assign a callback to the button*/
 
     lv_obj_t * lightbutton = lv_label_create(light);          /*Add a label to the button*/
-    lv_label_set_text(lightbutton, "灯");                     /*Set the labels text*/
+    lv_label_set_text(lightbutton, "light");                     /*Set the labels text*/
     lv_obj_center(lightbutton);
 
     /**温度*///////////////////
@@ -240,10 +240,10 @@ void loop()
 
         float temperture = 0;
         float humidi = 0;
-        //sensor.measureLowestPrecision(temperture, humidi);
+        sensor.measureLowestPrecision(temperture, humidi);
 
-        //lv_label_set_text(humidify, ("湿度" + std::to_string(humidi)).c_str());
-        //lv_label_set_text(temp, ("温度" + std::to_string(temperture)).c_str());
+        lv_label_set_text(humidify, ("湿度" + std::to_string(humidi)).c_str());
+        lv_label_set_text(temp, ("温度" + std::to_string(temperture)).c_str());
         //这两个就是sht45的温度和湿度
     }
 }
