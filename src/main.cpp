@@ -86,8 +86,12 @@ static void light_event(lv_event_t * e)
     if(code == LV_EVENT_CLICKED) {
         light = !light;
         if(light) {
+            digitalWrite(1, HIGH);
+            digitalWrite(11, HIGH);
             digitalWrite(21, HIGH);
         } else {
+            digitalWrite(1, LOW);
+            digitalWrite(11, LOW);
             digitalWrite(21, LOW);
         }
     }
@@ -128,6 +132,8 @@ void setup()
     pinMode(4, INPUT);
     pinMode(10, INPUT);
 
+    pinMode(1, OUTPUT);
+    pinMode(11, OUTPUT);
     pinMode(21, OUTPUT);   // 灯
 
     tft.init();
@@ -165,7 +171,7 @@ void setup()
     /**左边滑条*///////////////////
     lv_obj_t * left = lv_roller_create(lv_screen_active());
     lv_roller_set_options(left,
-        "1\n2\n3\n4\n5\n6\n7\n8\n9\n10",
+    "26\n27\n28\n29\n30\n31\n32\n33\n34\n35",
         LV_ROLLER_MODE_INFINITE);
 
     lv_roller_set_visible_row_count(left, 4);
@@ -215,6 +221,38 @@ void setup()
     lv_obj_align(humidify, LV_ALIGN_CENTER, 10, -50);
 }
 
+// ======= PID 参数 =======
+float setTemp = 30.0;  // 目标温度（可改为 UI 滚轮值）
+float Kp = 8.0;
+float Ki = 0.4;
+float Kd = 3.0;
+
+float integral = 0;
+float lastError = 0;
+unsigned long lastPidTime = 0;
+
+int pid_compute(float currentTemp) {
+    unsigned long now = millis();
+    float dt = (now - lastPidTime) / 1000.0;
+    if (dt <= 0) dt = 0.001;
+    lastPidTime = now;
+
+    float error = setTemp - currentTemp;
+
+    integral += error * dt;
+    float derivative = (error - lastError) / dt;
+    lastError = error;
+
+    float output = Kp * error + Ki * integral + Kd * derivative;
+
+    // 限制输出范围
+    if (output > 255) output = 255;
+    if (output < 0) output = 0;
+
+    // 温度越高 → 输出越低
+    return (int)(255 - output);
+}
+
 void loop()
 {
     lv_tick_inc(1);
@@ -245,6 +283,12 @@ void loop()
         lv_label_set_text(humidify, ("湿度" + std::to_string(humidi)).c_str());
         lv_label_set_text(temp, ("温度" + std::to_string(temperture)).c_str());
         //这两个就是sht45的温度和湿度
+
+        // === PID 控制输出 ===
+        int pidOutput = pid_compute(temperture);
+        ledcAttachPin(11, 0);
+        ledcSetup(0, 5000, 8);
+        ledcWrite(0, pidOutput);
     }
 }
 
