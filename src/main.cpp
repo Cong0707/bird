@@ -70,7 +70,8 @@ void input_read(lv_indev_t * indev, lv_indev_data_t * data)
 }
 
 bool servo = false;
-bool light = false;
+bool lightopen = false;
+int light_pwm_value = 128;  // 初始亮度 0~255
 
 static void button_event(lv_event_t * e)
 {
@@ -84,11 +85,11 @@ static void light_event(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
     if(code == LV_EVENT_CLICKED) {
-        light = !light;
-        if(light) {
-            digitalWrite(21, HIGH);
+        lightopen = !lightopen;
+        if(lightopen) {
+            ledcWrite(0, light_pwm_value);  // 恢复亮度
         } else {
-            digitalWrite(21, LOW);
+            ledcWrite(0, 0);  // 熄灭
         }
     }
 }
@@ -136,6 +137,10 @@ void setup()
     pinMode(21, OUTPUT);   // 灯
 
     digitalWrite(1, HIGH);  //风扇常开
+
+    ledcSetup(0, 500, 8);  // 5kHz, 8bit分辨率
+    ledcAttachPin(21, 0);
+    ledcWrite(0, 255);  // 初始亮度
 
     tft.init();
     tft.setRotation(3);
@@ -208,6 +213,22 @@ void setup()
     lv_obj_t * lightbutton = lv_label_create(light);          /*Add a label to the button*/
     lv_label_set_text(lightbutton, "light");                     /*Set the labels text*/
     lv_obj_center(lightbutton);
+
+    /**灯亮度滑条**/
+    lv_obj_t * light_slider = lv_slider_create(lv_screen_active());
+    lv_obj_set_width(light_slider, 150);
+    lv_obj_align_to(light_slider, lightbutton, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+    lv_slider_set_range(light_slider, 0, 255);
+    lv_slider_set_value(light_slider, light_pwm_value, LV_ANIM_OFF);
+    lv_obj_add_event_cb(light_slider, [](lv_event_t * e) {
+        lv_event_code_t code = lv_event_get_code(e);
+        if(code == LV_EVENT_VALUE_CHANGED) {
+            lv_obj_t * slider = (lv_obj_t *)lv_event_get_target(e);
+            int value = lv_slider_get_value(slider);
+            if (lightopen) ledcWrite(0, value);
+            Serial.printf("灯亮度: %d\n", value);
+        }
+    }, LV_EVENT_ALL, NULL);
 
     /**温度*///////////////////
     temp = lv_label_create(lv_screen_active()); // 创建标签
