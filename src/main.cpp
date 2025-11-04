@@ -352,8 +352,6 @@ void loop()
         lv_indev_read(indev);
     }
 
-    checkServoTimer();
-
     if (millis() % 200 == 0) {
         double dc = analogRead(10) / 4095.0 * 3.3 * 18; //dc口电压
         double pd = analogRead(4) / 4095.0 * 3.3 * 18;  //pd口电压
@@ -373,6 +371,7 @@ void loop()
         if (dc >= 1) {
             if (servo) {
                 lv_label_set_text(button, "孵化模式");
+                checkServoTimer();
             } else {
                 lv_label_set_text(button, "高性能模式");
                 ptc = true;
