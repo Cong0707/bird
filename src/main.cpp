@@ -6,6 +6,10 @@
 #include "TAMC_GT911.h"
 #include "indev/lv_indev_private.h"
 
+#include <ESP32Servo.h>
+
+Servo espservo;
+
 TFT_eSPI tft = TFT_eSPI();
 
 // 屏幕参数
@@ -125,6 +129,31 @@ lv_obj_t * button;
 lv_obj_t * temp;
 lv_obj_t * humidify;
 
+int64_t lastMoveTime;
+bool servoAt180 = false;   // 当前状态
+
+int servoIntervalHour = 3;
+
+void moveServo() {
+    if (servoAt180) {
+        espservo.writeMicroseconds(1000);  // 回到起点（0度）
+        Serial.println("舵机回到 0°");
+    } else {
+        espservo.writeMicroseconds(2000);  // 转到180°
+        Serial.println("舵机转动到 180°");
+    }
+    servoAt180 = !servoAt180;
+}
+
+void checkServoTimer() {
+    unsigned long now = millis();
+    unsigned long interval = servoIntervalHour * 3600UL * 1000UL;
+    if (now - lastMoveTime >= interval) {
+        moveServo();
+        lastMoveTime = now;
+    }
+}
+
 void setup()
 {
     Serial.begin(115200);
@@ -143,15 +172,22 @@ void setup()
     ledcWrite(0, 255);  // 初始亮度
 
     tft.init();
-    tft.setRotation(3);
+    tft.setRotation(1);
 
     // 初始化触摸 IC
     tp.begin(); //里面包括wire begin
-    tp.setRotation(3);
+    tp.setRotation(1);
 
     //sht45
     sensor.begin(Wire, SHT45_I2C_ADDR_44);
     sensor.softReset();
+
+    espservo.attach(9);
+    espservo.writeMicroseconds(1200);
+    delay(500);
+    espservo.writeMicroseconds(1800);
+
+    lastMoveTime = millis();
 
     // 创建独立线程采集触摸数据
     xTaskCreatePinnedToCore(touch_task, "TouchTask", 4096, NULL, 1, NULL, 1);
@@ -206,7 +242,7 @@ void setup()
 
     /**灯按钮*///////////////////
     lv_obj_t * light = lv_button_create(lv_screen_active());     /*Add a button the current screen*/
-    lv_obj_align(light, LV_ALIGN_CENTER, -10, 20);     // 居中显示
+    lv_obj_align(light, LV_ALIGN_CENTER, -10, 0);     // 居中显示
     lv_obj_set_size(light, 40, 40);                          /*Set its size*/
     lv_obj_add_event_cb(light, light_event, LV_EVENT_ALL, NULL);           /*Assign a callback to the button*/
 
@@ -216,7 +252,7 @@ void setup()
 
     /**灯亮度滑条**/
     lv_obj_t * light_slider = lv_slider_create(lv_screen_active());
-    lv_obj_set_width(light_slider, 150);
+    lv_obj_set_width(light_slider, 75);
     lv_obj_align_to(light_slider, lightbutton, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
     lv_slider_set_range(light_slider, 0, 255);
     lv_slider_set_value(light_slider, light_pwm_value, LV_ANIM_OFF);
@@ -241,6 +277,34 @@ void setup()
     lv_label_set_text(humidify, "humidify");  // 设置初始文本
 
     lv_obj_align(humidify, LV_ALIGN_CENTER, 10, -50);
+
+    /** 舵机档位滑条（横向） **/
+    lv_obj_t * servo_slider = lv_slider_create(lv_screen_active());
+    lv_obj_set_size(servo_slider, 100, 10);
+    lv_obj_align_to(servo_slider, lightbutton, LV_ALIGN_OUT_TOP_MID, 0, -10);
+    lv_slider_set_range(servo_slider, 2, 5);               // 范围 2~5 小时
+    lv_slider_set_value(servo_slider, 3, LV_ANIM_OFF);     // 默认 3 小时
+
+    // 标签
+    lv_obj_t * servo_label = lv_label_create(lv_screen_active());
+    lv_obj_align_to(servo_label, servo_slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
+    lv_label_set_text(servo_label, "间隔: 3小时");
+
+    // 回调函数
+    lv_obj_add_event_cb(servo_slider, [](lv_event_t * e) {
+        lv_event_code_t code = lv_event_get_code(e);
+        if (code == LV_EVENT_VALUE_CHANGED) {
+            lv_obj_t * slider = (lv_obj_t *)lv_event_get_target(e);
+            int value = lv_slider_get_value(slider);
+
+            // 更新标签显示
+            static char buf[16];
+            sprintf(buf, "间隔: %d小时", value);
+            lv_label_set_text((lv_obj_t *)lv_event_get_user_data(e), buf);
+
+            servoIntervalHour = value;
+        }
+    }, LV_EVENT_ALL, servo_label);
 }
 
 // ======= PID 参数 =======
@@ -275,7 +339,7 @@ int pid_compute(float currentTemp) {
     if (output > 255.0f) output = 255.0f;
     if (output < 0.0f) output = 0.0f;
 
-    Serial.printf("误差=%.2f, PID输出=%d\n", error, (int)output);
+    //Serial.printf("误差=%.2f, PID输出=%d\n", error, (int)output);
 
     return (int)(output);
 }
@@ -287,6 +351,8 @@ void loop()
     if (touch_pressed) {
         lv_indev_read(indev);
     }
+
+    checkServoTimer();
 
     if (millis() % 200 == 0) {
         double dc = analogRead(10) / 4095.0 * 3.3 * 18; //dc口电压
@@ -300,7 +366,7 @@ void loop()
         lv_label_set_text(humidify, ("湿度" + std::to_string(humidi)).c_str());
         lv_label_set_text(temp, ("温度" + std::to_string(temperture)).c_str());
         //这两个就是sht45的温度和湿度
-        Serial.println(("温度" + std::to_string(temperture)).c_str());
+        //Serial.println(("温度" + std::to_string(temperture)).c_str());
 
         bool ptc = false;
 
@@ -321,7 +387,7 @@ void loop()
         // === PID 控制输出 ===
         int pidOutput = pid_compute(temperture);
 
-        Serial.println(("温度设定" + std::to_string(tempset)).c_str());
+        //Serial.println(("温度设定" + std::to_string(tempset)).c_str());
         // === 基于PID输出的时间比例控制 ===
         static unsigned long windowStartTime = millis();
         const unsigned long windowSize = 1000;
@@ -332,10 +398,10 @@ void loop()
 
         if ((unsigned long)pidOutput * windowSize / 255 > millis() - windowStartTime) {
             digitalWrite(11, HIGH);
-            Serial.println("加热开启");
+            //Serial.println("加热开启");
         } else {
             digitalWrite(11, LOW);
-            Serial.println("加热关闭");
+            //Serial.println("加热关闭");
         }
     }
 }
