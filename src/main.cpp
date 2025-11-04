@@ -77,11 +77,23 @@ bool servo = false;
 bool lightopen = false;
 int light_pwm_value = 128;  // 初始亮度 0~255
 
+lv_obj_t * label;
+lv_obj_t * button;
+
+lv_obj_t * temp;
+lv_obj_t * humidify;
+
+int64_t lastMoveTime;
+bool servoAt180 = false;   // 当前状态
+
+int servoIntervalHour = 3;
+
 static void button_event(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
     if(code == LV_EVENT_LONG_PRESSED) {
-    servo = !servo;
+        servo = !servo;
+        lastMoveTime = millis();
     }
 }
 
@@ -122,17 +134,6 @@ static void right_event(lv_event_t * e)
         LV_LOG_USER("Selected water: %s\n", buf);
     }
 }
-
-lv_obj_t * label;
-lv_obj_t * button;
-
-lv_obj_t * temp;
-lv_obj_t * humidify;
-
-int64_t lastMoveTime;
-bool servoAt180 = false;   // 当前状态
-
-int servoIntervalHour = 3;
 
 void moveServo() {
     if (servoAt180) {
