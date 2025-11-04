@@ -86,16 +86,14 @@ static void light_event(lv_event_t * e)
     if(code == LV_EVENT_CLICKED) {
         light = !light;
         if(light) {
-            digitalWrite(1, HIGH);
-            digitalWrite(11, HIGH);
             digitalWrite(21, HIGH);
         } else {
-            digitalWrite(1, LOW);
-            digitalWrite(11, LOW);
             digitalWrite(21, LOW);
         }
     }
 }
+
+float tempset = 26;
 
 static void left_event(lv_event_t * e)
 {
@@ -104,6 +102,7 @@ static void left_event(lv_event_t * e)
     if(code == LV_EVENT_VALUE_CHANGED) {
         char buf[32];
         lv_roller_get_selected_str(obj, buf, sizeof(buf));
+        tempset = atoi(buf);
         LV_LOG_USER("Selected temp: %s\n", buf);
     }
 }
@@ -222,7 +221,6 @@ void setup()
 }
 
 // ======= PID 参数 =======
-float setTemp = 30.0;  // 目标温度（可改为 UI 滚轮值）
 float Kp = 8.0;
 float Ki = 0.4;
 float Kd = 3.0;
@@ -237,7 +235,7 @@ int pid_compute(float currentTemp) {
     if (dt <= 0) dt = 0.001;
     lastPidTime = now;
 
-    float error = setTemp - currentTemp;
+    float error = tempset - currentTemp;
 
     integral += error * dt;
     float derivative = (error - lastError) / dt;
@@ -287,7 +285,7 @@ void loop()
         // === PID 控制输出 ===
         int pidOutput = pid_compute(temperture);
         ledcAttachPin(11, 0);
-        ledcSetup(0, 5000, 8);
+        ledcSetup(0, 200, 8);
         ledcWrite(0, pidOutput);
     }
 }
