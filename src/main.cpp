@@ -272,16 +272,6 @@ void loop()
         double pd = analogRead(4) / 4095.0 * 3.3 * 18;  //pd口电压
         lv_label_set_text(label, ("dc: " + std::to_string(dc) + ";pd: " + std::to_string(pd)).c_str());
 
-        if (dc >= 1) {
-            if (servo) {
-                lv_label_set_text(button, "孵化模式");
-            } else {
-                lv_label_set_text(button, "高性能模式");
-            }
-        } else {
-            lv_label_set_text(button, "低性能模式");
-        }
-
         float temperture = 0;
         float humidi = 0;
         sensor.measureLowestPrecision(temperture, humidi);
@@ -290,6 +280,22 @@ void loop()
         lv_label_set_text(temp, ("温度" + std::to_string(temperture)).c_str());
         //这两个就是sht45的温度和湿度
         Serial.println(("温度" + std::to_string(temperture)).c_str());
+
+        bool ptc = false;
+
+        if (dc >= 1) {
+            if (servo) {
+                lv_label_set_text(button, "孵化模式");
+            } else {
+                lv_label_set_text(button, "高性能模式");
+                ptc = true;
+            }
+        } else {
+            lv_label_set_text(button, "低性能模式");
+            if (millis() % 2 == 0) { ptc = true; }
+        }
+
+        if (!ptc) return;
 
         // === PID 控制输出 ===
         int pidOutput = pid_compute(temperture);
