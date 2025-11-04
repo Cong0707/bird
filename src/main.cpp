@@ -135,9 +135,6 @@ void setup()
     pinMode(11, OUTPUT);
     pinMode(21, OUTPUT);   // 灯
 
-    ledcSetup(0, 100, 8);
-    ledcAttachPin(11, 0);
-
     tft.init();
     tft.setRotation(3);
 
@@ -255,7 +252,7 @@ int pid_compute(float currentTemp) {
     if (output > 255.0f) output = 255.0f;
     if (output < 0.0f) output = 0.0f;
 
-    return (int)(255 - output); // 直接返回，不要 255-output
+    return (int)(255 - output);
 }
 
 void loop()
@@ -288,12 +285,26 @@ void loop()
         lv_label_set_text(humidify, ("湿度" + std::to_string(humidi)).c_str());
         lv_label_set_text(temp, ("温度" + std::to_string(temperture)).c_str());
         //这两个就是sht45的温度和湿度
+        Serial.println(("温度" + std::to_string(temperture)).c_str());
 
         // === PID 控制输出 ===
         int pidOutput = pid_compute(temperture);
-        Serial.println(("温度" + std::to_string(temperture)).c_str());
-        Serial.println(pidOutput);
-        ledcWrite(0, pidOutput);
+        // === 基于PID输出的时间比例控制 ===
+        static unsigned long lastSwitchTime = 0;
+        const unsigned long controlWindow = 500;
+        unsigned long now = millis();
+
+        if (now - lastSwitchTime >= controlWindow) {
+            lastSwitchTime = now;
+        }
+
+        if ((float)pidOutput > (255 * (float)(now - lastSwitchTime) / controlWindow)) {
+            digitalWrite(11, HIGH); // 加热开启
+            Serial.println("加热开启");
+        } else {
+            digitalWrite(11, LOW);  // 加热关闭
+            Serial.println("加热关闭");
+        }
     }
 }
 
