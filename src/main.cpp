@@ -135,6 +135,8 @@ void setup()
     pinMode(11, OUTPUT);
     pinMode(21, OUTPUT);   // 灯
 
+    digitalWrite(1, HIGH);  //风扇常开
+
     tft.init();
     tft.setRotation(3);
 
@@ -221,9 +223,9 @@ void setup()
 }
 
 // ======= PID 参数 =======
-float Kp = 8.0;
-float Ki = 0.4;
-float Kd = 3.0;
+float Kp = 80.0;
+float Ki = 0.5;
+float Kd = 2.0;
 
 float integral = 0;
 float lastError = 0;
@@ -252,7 +254,9 @@ int pid_compute(float currentTemp) {
     if (output > 255.0f) output = 255.0f;
     if (output < 0.0f) output = 0.0f;
 
-    return (int)(255 - output);
+    Serial.printf("误差=%.2f, PID输出=%d\n", error, (int)output);
+
+    return (int)(output);
 }
 
 void loop()
@@ -289,20 +293,21 @@ void loop()
 
         // === PID 控制输出 ===
         int pidOutput = pid_compute(temperture);
-        // === 基于PID输出的时间比例控制 ===
-        static unsigned long lastSwitchTime = 0;
-        const unsigned long controlWindow = 500;
-        unsigned long now = millis();
 
-        if (now - lastSwitchTime >= controlWindow) {
-            lastSwitchTime = now;
+        Serial.println(("温度设定" + std::to_string(tempset)).c_str());
+        // === 基于PID输出的时间比例控制 ===
+        static unsigned long windowStartTime = millis();
+        const unsigned long windowSize = 1000;
+
+        if (millis() - windowStartTime > windowSize) {
+            windowStartTime += windowSize;  // 新一轮窗口
         }
 
-        if ((float)pidOutput > (255 * (float)(now - lastSwitchTime) / controlWindow)) {
-            digitalWrite(11, HIGH); // 加热开启
+        if ((unsigned long)pidOutput * windowSize / 255 > millis() - windowStartTime) {
+            digitalWrite(11, HIGH);
             Serial.println("加热开启");
         } else {
-            digitalWrite(11, LOW);  // 加热关闭
+            digitalWrite(11, LOW);
             Serial.println("加热关闭");
         }
     }
