@@ -135,6 +135,9 @@ void setup()
     pinMode(11, OUTPUT);
     pinMode(21, OUTPUT);   // 灯
 
+    ledcSetup(0, 100, 8);
+    ledcAttachPin(11, 0);
+
     tft.init();
     tft.setRotation(3);
 
@@ -231,24 +234,28 @@ unsigned long lastPidTime = 0;
 
 int pid_compute(float currentTemp) {
     unsigned long now = millis();
-    float dt = (now - lastPidTime) / 1000.0;
-    if (dt <= 0) dt = 0.001;
+    float dt = (now - lastPidTime) / 1000.0f;
+    if (dt <= 0.001f) dt = 0.001f; // 防止除零或太小
     lastPidTime = now;
 
     float error = tempset - currentTemp;
 
+    // 积分限幅（防止 windup）
+    float integrator_limit = 200.0f;
     integral += error * dt;
+    if (integral > integrator_limit) integral = integrator_limit;
+    if (integral < -integrator_limit) integral = -integrator_limit;
+
     float derivative = (error - lastError) / dt;
     lastError = error;
 
     float output = Kp * error + Ki * integral + Kd * derivative;
 
-    // 限制输出范围
-    if (output > 255) output = 255;
-    if (output < 0) output = 0;
+    // 限制输出范围 0..255（直接返回控制信号）
+    if (output > 255.0f) output = 255.0f;
+    if (output < 0.0f) output = 0.0f;
 
-    // 温度越高 → 输出越低
-    return (int)(255 - output);
+    return (int)(255 - output); // 直接返回，不要 255-output
 }
 
 void loop()
@@ -284,8 +291,8 @@ void loop()
 
         // === PID 控制输出 ===
         int pidOutput = pid_compute(temperture);
-        ledcAttachPin(11, 0);
-        ledcSetup(0, 200, 8);
+        Serial.println(("温度" + std::to_string(temperture)).c_str());
+        Serial.println(pidOutput);
         ledcWrite(0, pidOutput);
     }
 }
